@@ -2,6 +2,7 @@
 
 Trabalho Final da disciplina de Software Concorrente e Distribuído (SCD) — UFG 2026.1.  
 Professor: Fábio Moreira Costa
+
 Grupo 2: LÍBNA RAFFAELY DE JESUS COSTA, LUCAS MOREIRA IGLESIAS e VICTOR GABRIEL PACHECO GONTIJO
 
 ## Visão Geral
