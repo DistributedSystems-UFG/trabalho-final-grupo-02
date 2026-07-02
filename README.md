@@ -110,6 +110,3 @@ Professor Fábio, preparamos este roteiro de demonstração end-to-end para faci
 - `/src/dashboard`: Serviço Python do administrador de sistemas.
 - `/src/maintenance_worker`: Job Python assíncrono.
 - `/src/Client`: Cliente interativo.
-
-## Autores
-*Trabalho desenvolvido como requisito da disciplina de SCD (2026.1)*
