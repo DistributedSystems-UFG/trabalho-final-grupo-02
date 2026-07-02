@@ -1,7 +1,9 @@
 using Client.Http;
 using Client.Simulation;
 
-var httpClient = new HttpClient { BaseAddress = new Uri("http://35.171.130.40:80/") };
+//var httpClient = new HttpClient { BaseAddress = new Uri("http://35.171.130.40:80/") };
+var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8081") };
+
 var client = new InventoryApiClient(httpClient);
 var simulator = new LoadSimulator(client);
 
