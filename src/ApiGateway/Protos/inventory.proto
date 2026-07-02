@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option csharp_namespace = "InventoryService.Protos";
+
+package inventory;
+
+service InventoryService {
+  rpc SellProduct (SellRequest) returns (SellResponse);
+  rpc BuyProduct (BuyRequest) returns (BuyResponse);
+  rpc GetProduct (GetRequest) returns (ProductDto);
+  rpc ListProducts (ListRequest) returns (ListResponse);
+}
+
+message SellRequest {
+  int32 product_id = 1;
+  int32 quantity = 2;
+  string actor = 3;
+}
+
+message SellResponse {
+  bool success = 1;
+  int32 remaining_stock = 2;
+  string error_code = 3; // "NOT_FOUND", "INSUFFICIENT_STOCK", "CONFLICT"
+}
+
+message BuyRequest {
+  int32 product_id = 1;
+  int32 quantity = 2;
+  string actor = 3;
+}
+
+message BuyResponse {
+  bool success = 1;
+  int32 new_stock = 2;
+  string error_code = 3;
+}
+
+message GetRequest {
+  int32 product_id = 1;
+}
+
+message ListRequest {
+  string category = 1; // optional
+}
+
+message ListResponse {
+  repeated ProductDto products = 1;
+}
+
+message ProductDto {
+  int32 id = 1;
+  string name = 2;
+  string sku = 3;
+  string category = 4;
+  int32 quantity = 5;
+  double price = 6;
+}

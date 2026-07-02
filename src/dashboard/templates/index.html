@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Inventory System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; }
+        h1, h2 { color: #333; }
+        .grid { display: flex; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #f8f8f8; }
+        #alerts { max-height: 400px; overflow-y: auto; }
+        .alert { padding: 10px; border-left: 4px solid #007bff; background: #f9f9f9; margin-bottom: 10px; }
+        .alert.stock-low { border-left-color: #dc3545; }
+        .alert.product-sold { border-left-color: #28a745; }
+        .alert.product-bought { border-left-color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>Inventory Admin Dashboard</h1>
+    <div class="grid">
+        <div class="card">
+            <h2>Live Inventory (Read Replica)</h2>
+            <button onclick="loadProducts()">Refresh Data</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody id="products-tbody"></tbody>
+            </table>
+        </div>
+        
+        <div class="card">
+            <h2>Real-time Alerts (RabbitMQ via WebSocket)</h2>
+            <div id="alerts"></div>
+        </div>
+    </div>
+
+    <script>
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products');
+                const products = await res.json();
+                const tbody = document.getElementById('products-tbody');
+                tbody.innerHTML = '';
+                products.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${p.id}</td><td>${p.name}</td><td>${p.quantity}</td><td>$${p.price}</td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error("Failed to load products", err);
+            }
+        }
+
+        function setupWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const alertsDiv = document.getElementById('alerts');
+                const alertEl = document.createElement('div');
+                
+                let eventType = data.event || data.eventId || 'unknown';
+                alertEl.className = `alert ${eventType.replace('.', '-')}`;
+                
+                alertEl.innerHTML = `<strong>${new Date().toLocaleTimeString()} - ${eventType}</strong><br>
+                <pre style="margin: 5px 0 0 0; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>`;
+                
+                alertsDiv.prepend(alertEl);
+                
+                // Automatically refresh products table if inventory changed
+                loadProducts();
+            };
+
+            ws.onclose = function() {
+                setTimeout(setupWebSocket, 3000);
+            };
+        }
+
+        // Initialize
+        loadProducts();
+        setupWebSocket();
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# AWS EC2 Production Configuration
+# Run with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+
+services:
+  api-gateway:
+    ports: !reset
+      - "80:8080"  # Expose API Gateway on standard HTTP port 80 for public EC2 access
+
+  dashboard:
+    ports: !reset
+      - "8000:8000" # Expose Admin Dashboard
+
+  rabbitmq:
+    ports: !reset
+      - "15672:15672" # Expose Management UI for the Demo
+      # Disabling public AMQP port 5672 for security
+
+  postgres-primary:
+    ports: !reset [] # Disable public DB access
+
+  postgres-replica:
+    ports: !reset [] # Disable public DB access
+
+  inventory-service:
+    ports: !reset [] # Disable public gRPC access

@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+aio-pika
+asyncpg
+python-dotenv
+jinja2

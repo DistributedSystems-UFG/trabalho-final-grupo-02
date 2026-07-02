@@ -1,0 +1,103 @@
+services:
+  postgres-primary:
+    restart: on-failure
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./postgres/02-config.sh:/docker-entrypoint-initdb.d/02-config.sh
+    command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10", "-c", "hot_standby=on"]
+
+  postgres-replica:
+    restart: on-failure
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PGPASSWORD: replicator_pass
+    depends_on:
+      - postgres-primary
+    ports:
+      - "5433:5432"
+    command: >
+      bash -c "
+      until pg_isready -h postgres-primary -U postgres; do
+        echo 'Waiting for primary...'
+        sleep 2
+      done;
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+        echo 'Initializing replica from primary...'
+        rm -rf /var/lib/postgresql/data/*
+        pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U replicator -v -P --wal-method=stream --write-recovery-conf
+        chown -R postgres:postgres /var/lib/postgresql/data
+      fi;
+      exec docker-entrypoint.sh postgres -c hot_standby=on
+      "
+
+  rabbitmq:
+    restart: on-failure
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+
+  inventory-service:
+    restart: on-failure
+    build: 
+      context: ../src/InventoryService
+      dockerfile: Dockerfile
+    environment:
+      ConnectionStrings__Primary: "Host=postgres-primary;Database=inventory;Username=postgres;Password=postgres"
+      RabbitMQ__Host: rabbitmq
+    depends_on:
+      - postgres-primary
+      - rabbitmq
+    ports:
+      - "5001:5001"  # gRPC
+
+  api-gateway:
+    restart: on-failure
+    build: 
+      context: ../src/ApiGateway
+      dockerfile: Dockerfile
+    environment:
+      InventoryService__GrpcUrl: "http://inventory-service:5001"
+      RabbitMQ__Host: rabbitmq
+      Jwt__Secret: "your-256-bit-secret-for-demo-only"
+    depends_on:
+      - inventory-service
+    ports:
+      - "8081:8080"  # REST + WebSocket
+
+  dashboard:
+    restart: on-failure
+    build: 
+      context: ../src/dashboard
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq/
+      POSTGRES_URL: postgresql://postgres:postgres@postgres-replica:5432/inventory
+    depends_on:
+      - rabbitmq
+      - postgres-replica
+    ports:
+      - "8000:8000"
+
+  maintenance-worker:
+    restart: on-failure
+    build: 
+      context: ../src/maintenance_worker
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq/
+      POSTGRES_URL: postgresql://postgres:postgres@postgres-primary:5432/inventory
+    depends_on:
+      - rabbitmq
+      - postgres-primary
