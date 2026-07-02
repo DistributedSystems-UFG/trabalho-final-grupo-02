@@ -102,7 +102,6 @@ Professor Fábio, preparamos este roteiro de demonstração end-to-end para faci
 
 ## Estrutura do Repositório
 
-- `/docs`: Documentação aprofundada (`ARCHITECTURE.md` recomendada para análise arquitetural).
 - `/infra`: Manifestos Docker e configuração nativa do PostgreSQL.
 - `/src/ApiGateway`: Microsserviço de exposição Web API C#.
 - `/src/InventoryService`: Backend de processamento e gRPC server.
